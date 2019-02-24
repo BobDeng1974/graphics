@@ -1,52 +1,40 @@
-/// main.cpp
-
+///// main.cpp
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
+#include <GL/freeglut.h>
 #include <iostream>
 
-int main(void)
+void init();
+void mydisplay();
+
+int main(int argc, char* argv[])
 {
-	GLFWwindow* window;
+	glutInit(&argc, argv);
+	glutInitWindowSize(500, 500);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	glutCreateWindow("Hello OpenGL");
 
-	// Initialize GLFW library
-	if (!glfwInit())
-		return -1;
+	init();
 
-	// Create a GLFW window containing a OpenGL context
-	window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-	if (!window)
-	{
-		glfwTerminate();
-		return -1;
-	}
+	glutDisplayFunc(mydisplay);
 
-	// Make the current OpenGL context as one in the window
-	glfwMakeContextCurrent(window);
+	glutMainLoop();
 
-	// Initialize GLEW library
+	return	0;
+}
+
+void init()
+{
 	if (glewInit() != GLEW_OK)
 		std::cout << "GLEW Init Error!" << std::endl;
 
-	// Print out the OpenGL version supported by the graphics card in my PC
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	glClearColor(0.5, 0.5, 0.5, 1.0);
+	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+}
 
-	// Loop until the user closes the window
-	while (!glfwWindowShouldClose(window))
-	{
-		// Render here
-		glClear(GL_COLOR_BUFFER_BIT);
+void mydisplay()
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Swap front and back buffers
-		glfwSwapBuffers(window);
-
-		// Poll for and process events
-		glfwPollEvents();
-	}
-
-	glfwTerminate();
-
-	return 0;
+	glutSwapBuffers();
 }
