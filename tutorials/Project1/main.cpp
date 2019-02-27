@@ -8,6 +8,8 @@
 #include <string>
 #include <fstream>
 #include <cassert>
+#include "vec.hpp"
+#include "transform.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
 /// 쉐이더 관련 변수 및 함수
@@ -45,8 +47,17 @@ GLfloat color[] = {
 void render_scene();    // rendering 함수: 현재 scene은 삼각형 하나로 구성되어 있음.
 ////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+kmuvcl::math::mat4x4f     mat_model, mat_view, mat_proj;
+kmuvcl::math::mat4x4f     mat_PVM;
+GLint                     loc_u_PVM;      // uniform 변수 a_color 위치
 
-                        // GLSL 파일을 읽어서 컴파일한 후 쉐이더 객체를 생성하는 함수
+float   x_pos = 0.0, y_pos = 0.0, z_pos = 0.0;
+bool    b_animation = false;
+////////////////////////////////////////////////////////////////////////////////
+
+
+// GLSL 파일을 읽어서 컴파일한 후 쉐이더 객체를 생성하는 함수
 GLuint create_shader_from_file(const std::string& filename, GLuint shader_type)
 {
   GLuint shader = 0;
@@ -90,6 +101,8 @@ void init_shader_program()
   std::cout << "program id: " << program << std::endl;
   assert(program != 0);
 
+  loc_u_PVM = glGetUniformLocation(program, "u_PVM");
+
   loc_a_position = glGetAttribLocation(program, "a_position");
   loc_a_color = glGetAttribLocation(program, "a_color");
 }
@@ -105,6 +118,38 @@ void init_buffer_objects()
   glBufferData(GL_ARRAY_BUFFER, sizeof(color), color, GL_STATIC_DRAW);
 }
 
+void set_transform()
+{
+  // set object transformation
+  mat_model = kmuvcl::math::translate<float>(x_pos, y_pos, z_pos);
+  
+  // set camera transformation
+  mat_proj = kmuvcl::math::translate<float>(0, 0, 0);
+  mat_view = kmuvcl::math::translate<float>(0, 0, 0);
+
+  // TODO ...
+}
+
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  if (key == GLFW_KEY_H && action == GLFW_PRESS)
+    x_pos -= 0.1f;
+  if (key == GLFW_KEY_L && action == GLFW_PRESS)
+    x_pos += 0.1f;
+  if (key == GLFW_KEY_J && action == GLFW_PRESS)
+    y_pos -= 0.1f;
+  if (key == GLFW_KEY_K && action == GLFW_PRESS)
+    y_pos += 0.1f;
+
+  if (key == GLFW_KEY_P && action == GLFW_PRESS)
+  {
+    b_animation = !b_animation;
+    std::cout << (b_animation ? "animation" : "no animation") << std::endl;
+  }
+}
+
+
 
 // scene rendering: 현재 scene은 삼각형 하나로 구성되어 있음.
 void render_scene()
@@ -115,6 +160,8 @@ void render_scene()
   glUseProgram(program);
 
   // 서버측 attribute 변수 a_position, a_color 값을 채춰줄 클라이언트 측 데이터 지정
+  mat_PVM = mat_proj * mat_view * mat_model;
+  glUniformMatrix4fv(loc_u_PVM, 1, GL_FALSE, mat_PVM);
 
   // 버텍스 쉐이더 layout(location = 0) 위치의 attribute 활성화
   glEnableVertexAttribArray(loc_a_position);
@@ -172,13 +219,31 @@ int main(void)
 
   glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 
+
+  glfwSetKeyCallback(window, key_callback);
+
+
   // Loop until the user closes the window
   while (!glfwWindowShouldClose(window))
   {
     // Poll for and process events
     glfwPollEvents();
 
+    double currentTime = glfwGetTime();
+
+    set_transform();
     render_scene();
+
+    double lastTime = glfwGetTime();
+    float deltaTime = float(currentTime - lastTime);
+
+    if (b_animation)
+    {
+      //x_pos += 0.1f *deltaTime;
+      x_pos += 0.1f;
+      if (x_pos > 1.0f)
+        x_pos = -1.0f;
+    }
 
     // Swap front and back buffers
     glfwSwapBuffers(window);
